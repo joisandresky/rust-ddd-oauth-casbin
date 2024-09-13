@@ -1,0 +1,5 @@
+{
+  "user-management": ["read", "write"],
+  "role-management": ["read", "write"],
+  "permission-management": ["read", "write"]
+}
