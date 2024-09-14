@@ -286,4 +286,20 @@ where
 
         Ok(user_full)
     }
+
+    pub async fn google_revoke_token(&self, access_token: &str) -> Result<(), AppError> {
+        let client = reqwest::Client::new();
+        let url = format!(
+            "https://oauth2.googleapis.com/revoke?token={}",
+            access_token
+        );
+
+        let _ = client
+            .post(url)
+            .send()
+            .await
+            .map_err(|err| AppError::ProcessError(err.to_string()))?;
+
+        Ok(())
+    }
 }

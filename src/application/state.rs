@@ -6,6 +6,7 @@ use crate::infra::{
     repositories::{
         pg_oauth_provider::PgOauthProviderRepository, pg_role_repo::PgRoleRepository,
         pg_user_repo::PgUserRepository, pg_user_session::PgUserSessionRepository,
+        redis_repo_impl::RedisRepositoryImpl,
     },
     utils::{google_jwt::GoogleJwtMaker, jwt_maker::JwtMaker},
 };
@@ -13,7 +14,7 @@ use bb8_redis::{bb8::Pool, RedisConnectionManager};
 use sqlx::PgPool;
 
 use super::{
-    services::oauth_svc::OauthService,
+    services::{oauth_svc::OauthService, redis_svc::RedisService},
     usecases::{
         auth::{get_google_auth_url::GetGoogleAuthUrl, oauth2_login::Oauth2Login},
         role::{
@@ -68,7 +69,7 @@ pub struct AuthUsecase {
 
 #[derive(Clone)]
 pub struct Service {
-    pub oauth_svc: Arc<
+    pub oauth: Arc<
         OauthService<
             PgUserRepository,
             PgRoleRepository,
@@ -76,18 +77,20 @@ pub struct Service {
             PgOauthProviderRepository,
         >,
     >,
+    pub redis: Arc<RedisService<RedisRepositoryImpl>>,
 }
 
 impl AppState {
     pub fn new(
         cfg: Arc<AppConfig>,
         db_pool: PgPool,
-        _redis_pool: Pool<RedisConnectionManager>,
+        redis_pool: Pool<RedisConnectionManager>,
         rbac: Arc<Rbac>,
     ) -> Self {
         // utils or tooling
         let jwt_maker = Arc::new(JwtMaker::new(cfg.jwt_secret.clone()));
         let google_jwt_maker = Arc::new(GoogleJwtMaker::new(cfg.clone()));
+        let redis_repo = Arc::new(RedisRepositoryImpl::new(redis_pool.clone()));
 
         // repos list
         let role_repo = Arc::new(PgRoleRepository::new(db_pool.clone()));
@@ -96,6 +99,7 @@ impl AppState {
         let oauth_provider_repo = Arc::new(PgOauthProviderRepository::new(db_pool.clone()));
 
         // services list
+        let redis_svc = Arc::new(RedisService::new(redis_repo.clone()));
         let oauth_svc = Arc::new(OauthService::new(
             cfg.clone(),
             user_repo.clone(),
@@ -120,7 +124,10 @@ impl AppState {
         let oauth2_login = Arc::new(Oauth2Login::new(oauth_svc.clone()));
 
         // service registration
-        let svc = Arc::new(Service { oauth_svc });
+        let svc = Arc::new(Service {
+            oauth: oauth_svc,
+            redis: redis_svc,
+        });
 
         // usecase registration
         let uc = Arc::new(Usecase {

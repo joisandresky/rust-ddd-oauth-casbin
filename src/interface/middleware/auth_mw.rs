@@ -44,7 +44,7 @@ pub async fn is_authorized(
 
             let current_user = app_state
                 .svc
-                .oauth_svc
+                .oauth
                 .get_current_oauth_user(&provider, &claims.sub)
                 .await
                 .map_err(|err| AppError::UnauthorizedError(err.to_string()))?;
