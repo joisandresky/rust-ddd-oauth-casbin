@@ -16,7 +16,10 @@ use sqlx::PgPool;
 use super::{
     services::{oauth_svc::OauthService, redis_svc::RedisService},
     usecases::{
-        auth::{get_google_auth_url::GetGoogleAuthUrl, oauth2_login::Oauth2Login},
+        auth::{
+            get_google_auth_url::GetGoogleAuthUrl, oauth2_login::Oauth2Login,
+            oauth2_logout::Oauth2Logout,
+        },
         role::{
             create_role::CreateRole, delete_role_by_id::DeleteRoleById, get_all_role::GetAllRole,
             get_role_by_id::GetRoleById, update_role_by_id::UpdateRoleById,
@@ -58,6 +61,14 @@ pub struct AuthUsecase {
     pub get_google_auth_url: Arc<GetGoogleAuthUrl>,
     pub oauth2_login: Arc<
         Oauth2Login<
+            PgUserRepository,
+            PgRoleRepository,
+            PgUserSessionRepository,
+            PgOauthProviderRepository,
+        >,
+    >,
+    pub oauth2_logout: Arc<
+        Oauth2Logout<
             PgUserRepository,
             PgRoleRepository,
             PgUserSessionRepository,
@@ -122,6 +133,10 @@ impl AppState {
             cfg.google_redirect_url.clone(),
         ));
         let oauth2_login = Arc::new(Oauth2Login::new(oauth_svc.clone()));
+        let oauth2_logout = Arc::new(Oauth2Logout::new(
+            user_session_repo.clone(),
+            oauth_svc.clone(),
+        ));
 
         // service registration
         let svc = Arc::new(Service {
@@ -141,6 +156,7 @@ impl AppState {
             auth: Arc::new(AuthUsecase {
                 get_google_auth_url,
                 oauth2_login,
+                oauth2_logout,
             }),
         });
 

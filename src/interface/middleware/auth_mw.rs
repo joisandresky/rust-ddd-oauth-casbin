@@ -7,7 +7,10 @@ use axum::{
 };
 use axum_extra::extract::CookieJar;
 
-use crate::{application::state::AppState, infra::errors::app_error::AppError};
+use crate::{
+    application::state::AppState,
+    infra::{errors::app_error::AppError, oauth2::constants::GOOGLE_PROVIDER},
+};
 
 pub async fn is_authorized(
     cookie_jar: CookieJar,
@@ -29,7 +32,7 @@ pub async fn is_authorized(
     // TODO: Implement Automatic Refresh Token when access_token expired
 
     match provider.as_str() {
-        "google" => {
+        GOOGLE_PROVIDER => {
             let claims = app_state
                 .google_jwt_maker
                 .verify_token(&token.unwrap_or_default())

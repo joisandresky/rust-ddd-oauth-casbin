@@ -33,9 +33,10 @@ impl UserSessionRepository for PgUserSessionRepository {
     async fn create(&self, entity: UserSession) -> Result<UserSession, AppError> {
         let session = sqlx::query_as!(
             UserSession,
-            "INSERT INTO user_sessions (id, user_id, refresh_token, created_at) VALUES ($1, $2, $3, $4) RETURNING *",
+            "INSERT INTO user_sessions (id, user_id, access_token, refresh_token, created_at) VALUES ($1, $2, $3, $4, $5) RETURNING *",
             entity.id,
             entity.user_id,
+            entity.access_token,
             entity.refresh_token,
             entity.created_at
         )
@@ -45,10 +46,11 @@ impl UserSessionRepository for PgUserSessionRepository {
         Ok(session)
     }
 
-    async fn update_refresh_token(&self, session: &UserSession) -> Result<(), AppError> {
+    async fn update_token(&self, session: &UserSession) -> Result<(), AppError> {
         sqlx::query!(
-            "UPDATE user_sessions SET refresh_token = $1 WHERE user_id = $2",
+            "UPDATE user_sessions SET refresh_token = $1, access_token = $2 WHERE user_id = $3",
             session.refresh_token,
+            session.access_token,
             session.user_id
         )
         .execute(&self.pool)

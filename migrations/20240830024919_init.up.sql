@@ -26,6 +26,7 @@ CREATE TABLE user_oauth_providers (
 CREATE TABLE user_sessions (
     id VARCHAR(255) PRIMARY KEY NOT NULL,
     user_id VARCHAR(255) NOT NULL,
+    access_token VARCHAR(255) NOT NULL,
     refresh_token TEXT NOT NULL,
     expires_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,

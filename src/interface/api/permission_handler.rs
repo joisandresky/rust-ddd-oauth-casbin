@@ -12,7 +12,6 @@ pub fn setup_permission_handler() -> Router<Arc<AppState>> {
     Router::new().route("/list", axum::routing::get(get_permission_list))
 }
 
-// TODO: change into caching or changes detection when performance issue happens
 async fn get_permission_list(
     State(app_state): State<Arc<AppState>>,
 ) -> Result<SuccessResponse<HashMap<String, Vec<String>>>, AppError> {

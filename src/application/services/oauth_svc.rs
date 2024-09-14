@@ -20,7 +20,9 @@ use crate::{
         },
     },
     infra::{
-        config::AppConfig, errors::app_error::AppError, oauth2::google::GOOGLE_TOKEN_ENDPOINT,
+        config::AppConfig,
+        errors::app_error::AppError,
+        oauth2::{constants::GOOGLE_PROVIDER, google::GOOGLE_TOKEN_ENDPOINT},
     },
 };
 
@@ -93,6 +95,7 @@ where
                         let _session = self
                             .get_or_create_session(
                                 &u.id,
+                                &resp.access_token,
                                 &resp.refresh_token,
                                 Some(resp.expires_in as i64),
                             )
@@ -105,6 +108,7 @@ where
                     let _session = self
                         .get_or_create_session(
                             &user_data.id,
+                            &resp.access_token,
                             &resp.refresh_token,
                             Some(resp.expires_in as i64),
                         )
@@ -190,7 +194,7 @@ where
         let user = User::from(google_user_info);
         let user_oauth_provider = UserOauthProvider::new(
             user.id.clone(),
-            "google".to_string(),
+            GOOGLE_PROVIDER.to_string(),
             google_user_info.sub.clone(),
         );
         let user_role = UserRole::new(user.id.clone(), default_role.id.clone());
@@ -209,6 +213,7 @@ where
     pub async fn get_or_create_session(
         &self,
         user_id: &str,
+        access_token: &str,
         refresh_token: &str,
         expires_at: Option<i64>,
     ) -> Result<UserSession, AppError> {
@@ -224,7 +229,11 @@ where
         if let Ok(mut exist_session) = self.user_session_repo.find_by_user_id(user_id).await {
             if exist_session.refresh_token != refresh_token {
                 // change refresh token
-                exist_session.update(refresh_token.to_string(), expires_at);
+                exist_session.update(
+                    access_token.to_string(),
+                    refresh_token.to_string(),
+                    expires_at,
+                );
 
                 info!(
                     "Exist Session and Not Matched Refresh Token, Updated Session: {:?}",
@@ -232,7 +241,7 @@ where
                 );
 
                 self.user_session_repo
-                    .update_refresh_token(&exist_session)
+                    .update_token(&exist_session)
                     .await
                     .map_err(|err| AppError::ProcessError(err.to_string()))?;
             }
@@ -240,7 +249,12 @@ where
             return Ok(exist_session);
         }
 
-        let session = UserSession::new(user_id.to_string(), refresh_token.to_string(), expires_at);
+        let session = UserSession::new(
+            user_id.to_string(),
+            access_token.to_string(),
+            refresh_token.to_string(),
+            expires_at,
+        );
         let session = self
             .user_session_repo
             .create(session)

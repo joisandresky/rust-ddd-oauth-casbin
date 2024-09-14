@@ -11,7 +11,10 @@ use axum_extra::extract::cookie::{self, Cookie};
 
 use crate::{
     application::{dto::auth::oauth2_request::Oauth2Request, state::AppState},
-    infra::{errors::app_error::AppError, utils::response::SuccessResponse},
+    infra::{
+        errors::app_error::AppError, oauth2::constants::GOOGLE_PROVIDER,
+        utils::response::SuccessResponse,
+    },
 };
 
 pub fn setup_public_oauth_handler() -> Router<Arc<AppState>> {
@@ -25,7 +28,7 @@ pub async fn get_oauth_url(
     State(app_state): State<Arc<AppState>>,
     Path(provider): Path<String>,
 ) -> Result<SuccessResponse<String>, AppError> {
-    if provider == "google" {
+    if provider == GOOGLE_PROVIDER {
         let url = app_state.uc.auth.get_google_auth_url.execute().await?;
 
         return Ok(SuccessResponse::with_data(200, url));

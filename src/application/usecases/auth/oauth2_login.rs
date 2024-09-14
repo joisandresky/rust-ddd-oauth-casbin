@@ -6,7 +6,7 @@ use crate::{
         oauth_provider_repo::OauthProviderRepository, role_repo::RoleRepository,
         user_repo::UserRepository, user_session_repo::UserSessionRepository,
     },
-    infra::errors::app_error::AppError,
+    infra::{errors::app_error::AppError, oauth2::constants::GOOGLE_PROVIDER},
 };
 
 #[derive(Clone)]
@@ -32,7 +32,7 @@ where
         provider: String,
         req: Oauth2Request,
     ) -> Result<(String, String), AppError> {
-        if provider == "google" {
+        if provider == GOOGLE_PROVIDER {
             let google_resp = self.oauth_svc.google_login(db_pool, &req.code).await?;
 
             return Ok((google_resp.id_token, google_resp.refresh_token));
