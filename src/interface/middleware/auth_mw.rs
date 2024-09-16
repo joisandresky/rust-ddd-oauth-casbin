@@ -31,36 +31,34 @@ pub async fn is_authorized(
 
     // TODO: Implement Automatic Refresh Token when access_token expired
 
-    match provider.as_str() {
-        GOOGLE_PROVIDER => {
-            let claims = app_state
-                .google_jwt_maker
-                .verify_token(&token.unwrap_or_default())
-                .await
-                .map_err(|err| {
-                    tracing::info!(
-                        "[Middleware:Auth->is_authorized] User is not authorized with error: {}",
-                        err
-                    );
-                    AppError::UnauthorizedError(err.to_string())
-                })?;
-
-            let current_user = app_state
-                .svc
-                .oauth
-                .get_current_oauth_user(&provider, &claims.sub)
-                .await
-                .map_err(|err| AppError::UnauthorizedError(err.to_string()))?;
-
-            req.extensions_mut().insert(current_user);
-        }
+    let claims = match provider.as_str() {
+        GOOGLE_PROVIDER => app_state
+            .google_jwt_maker
+            .verify_token(&token.unwrap_or_default())
+            .await
+            .map_err(|err| {
+                tracing::info!(
+                    "[Middleware:Auth->is_authorized] User is not authorized with error: {}",
+                    err
+                );
+                AppError::UnauthorizedError(err.to_string())
+            })?,
         _ => {
             tracing::info!("[Middleware:Auth->is_authorized] User is not authorized because of Invalid Oauth Provider");
             return Err(AppError::UnauthorizedError(
                 "User is not authorized because of Invalid Oauth Provider".to_string(),
             ));
         }
-    }
+    };
+
+    let current_user = app_state
+        .svc
+        .oauth
+        .get_current_oauth_user(&provider, &claims.sub)
+        .await
+        .map_err(|err| AppError::UnauthorizedError(err.to_string()))?;
+
+    req.extensions_mut().insert(current_user);
 
     let response = next.run(req).await;
 
