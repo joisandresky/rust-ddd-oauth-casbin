@@ -6,7 +6,10 @@ use crate::{
         oauth_provider_repo::OauthProviderRepository, role_repo::RoleRepository,
         user_repo::UserRepository, user_session_repo::UserSessionRepository,
     },
-    infra::{errors::app_error::AppError, oauth2::constants::GOOGLE_PROVIDER},
+    infra::{
+        errors::app_error::AppError,
+        oauth2::constants::{EMAIL_PROVIDER, GOOGLE_PROVIDER},
+    },
 };
 
 #[derive(Clone)]
@@ -45,6 +48,7 @@ where
                     .google_revoke_token(&user_session.access_token)
                     .await?;
             }
+            EMAIL_PROVIDER => {}
             _ => return Err(AppError::InvalidOauthProvider),
         }
 

@@ -9,7 +9,6 @@ use axum_extra::extract::CookieJar;
 
 use crate::{
     application::state::AppState,
-    domain::entities::user::UserFull,
     infra::{
         errors::app_error::AppError,
         oauth2::constants::{EMAIL_PROVIDER, GOOGLE_PROVIDER},

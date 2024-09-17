@@ -1,8 +1,6 @@
 use serde::Deserialize;
 use validator::Validate;
 
-use crate::domain::entities::user::User;
-
 #[derive(Clone, Debug, Deserialize, Validate)]
 pub struct EmailRegisterRequest {
     #[validate(email)]
