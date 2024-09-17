@@ -18,11 +18,11 @@ pub struct GoogleJwtMaker {
 
 #[derive(Deserialize, Clone)]
 struct Jwk {
-    alg: String,
+    // alg: String,
     kid: String,
     n: String,
     e: String,
-    kty: String,
+    // kty: String,
 }
 
 #[derive(Deserialize, Clone)]

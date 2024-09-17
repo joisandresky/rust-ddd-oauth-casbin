@@ -150,9 +150,6 @@ impl AppState {
         let email_register = Arc::new(EmailRegister::new(user_repo.clone(), role_repo.clone()));
         let email_login = Arc::new(EmailLogin::new(
             user_repo.clone(),
-            role_repo.clone(),
-            user_session_repo.clone(),
-            oauth_provider_repo.clone(),
             jwt_maker.clone(),
             oauth_svc.clone(),
         ));

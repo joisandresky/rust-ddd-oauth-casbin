@@ -17,9 +17,6 @@ use crate::{
 #[derive(Clone)]
 pub struct EmailLogin<U, R, S, O> {
     user_repo: Arc<U>,
-    role_repo: Arc<R>,
-    session_repo: Arc<S>,
-    oauth_provider_repo: Arc<O>,
     jwt_maker: Arc<JwtMaker>,
     oauth_svc: Arc<OauthService<U, R, S, O>>,
 }
@@ -33,17 +30,11 @@ where
 {
     pub fn new(
         user_repo: Arc<U>,
-        role_repo: Arc<R>,
-        session_repo: Arc<S>,
-        oauth_provider_repo: Arc<O>,
         jwt_maker: Arc<JwtMaker>,
         oauth_svc: Arc<OauthService<U, R, S, O>>,
     ) -> Self {
         Self {
             user_repo,
-            role_repo,
-            session_repo,
-            oauth_provider_repo,
             jwt_maker,
             oauth_svc,
         }
