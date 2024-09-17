@@ -1,6 +1,6 @@
 # Rust Clean Architecture Boilerplate
 
-This is my boilerplate using rust to make an REST API with some stuff included that i dont want to make it again again again and again LOL :).
+This is my boilerplate using rust to make a REST API with some stuff included that i dont want to make it again again again and again LOL :).
 
 ## Tech Stacks
 
