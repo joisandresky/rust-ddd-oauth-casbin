@@ -147,6 +147,7 @@ impl AppState {
         let oauth2_logout = Arc::new(Oauth2Logout::new(
             user_session_repo.clone(),
             oauth_svc.clone(),
+            redis_svc.clone(),
         ));
         let email_register = Arc::new(EmailRegister::new(user_repo.clone(), role_repo.clone()));
         let email_login = Arc::new(EmailLogin::new(

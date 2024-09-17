@@ -54,4 +54,11 @@ where
 
         Ok(user)
     }
+
+    pub async fn remove_current_user(&self, user_id: &str) -> Result<(), AppError> {
+        let redis_key = format!("current_user_{}", user_id);
+        self.redis_repo.delete_value(&redis_key).await?;
+
+        Ok(())
+    }
 }

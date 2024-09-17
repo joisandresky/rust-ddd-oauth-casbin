@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    application::services::oauth_svc::OauthService,
+    application::services::{oauth_svc::OauthService, redis_svc::RedisService},
     domain::repositories::{
         oauth_provider_repo::OauthProviderRepository, role_repo::RoleRepository,
         user_repo::UserRepository, user_session_repo::UserSessionRepository,
@@ -9,6 +9,7 @@ use crate::{
     infra::{
         errors::app_error::AppError,
         oauth2::constants::{EMAIL_PROVIDER, GOOGLE_PROVIDER},
+        repositories::redis_repo_impl::RedisRepositoryImpl,
     },
 };
 
@@ -16,6 +17,7 @@ use crate::{
 pub struct Oauth2Logout<U, R, S, O> {
     user_session_repo: Arc<S>,
     oauth_svc: Arc<OauthService<U, R, S, O>>,
+    redis_svc: Arc<RedisService<RedisRepositoryImpl>>,
 }
 
 impl<U, R, S, O> Oauth2Logout<U, R, S, O>
@@ -25,10 +27,15 @@ where
     S: UserSessionRepository,
     O: OauthProviderRepository,
 {
-    pub fn new(user_session_repo: Arc<S>, oauth_svc: Arc<OauthService<U, R, S, O>>) -> Self {
+    pub fn new(
+        user_session_repo: Arc<S>,
+        oauth_svc: Arc<OauthService<U, R, S, O>>,
+        redis_svc: Arc<RedisService<RedisRepositoryImpl>>,
+    ) -> Self {
         Self {
             user_session_repo,
             oauth_svc,
+            redis_svc,
         }
     }
 
@@ -51,6 +58,8 @@ where
             EMAIL_PROVIDER => {}
             _ => return Err(AppError::InvalidOauthProvider),
         }
+
+        self.redis_svc.remove_current_user(user_id).await?;
 
         Ok(())
     }
