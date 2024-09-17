@@ -31,4 +31,7 @@ pub struct AppConfig {
 
     #[envconfig(from = "GOOGLE_REDIRECT_URI")]
     pub google_redirect_url: String,
+
+    #[envconfig(from = "SUPER_KEY")]
+    pub super_key: String,
 }

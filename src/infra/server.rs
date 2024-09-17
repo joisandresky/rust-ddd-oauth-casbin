@@ -19,6 +19,7 @@ use crate::{
     interface::api::{
         auth_handler::setup_auth_routes, permission_handler::setup_permission_handler,
         public_oauth_handler::setup_public_oauth_handler, role_handler::setup_role_routes,
+        super_handler::setup_super_handler,
     },
 };
 
@@ -83,9 +84,10 @@ impl ServerBuilder {
     fn setup_router(&self, app_state: Arc<AppState>) -> Router<Arc<AppState>> {
         Router::new()
             .nest("/api/v1/permissions", setup_permission_handler())
-            .nest("/api/v1/roles", setup_role_routes())
+            .nest("/api/v1/roles", setup_role_routes(app_state.clone()))
             .nest("/oauth", setup_public_oauth_handler())
             .nest("/api/v1/auth", setup_auth_routes(app_state.clone()))
+            .nest("/api/v1/super", setup_super_handler(app_state.clone()))
     }
 
     fn setup_cors(&self) -> CorsLayer {

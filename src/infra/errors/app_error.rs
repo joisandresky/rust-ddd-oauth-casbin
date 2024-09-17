@@ -78,6 +78,9 @@ pub enum AppError {
 
     #[error("User with given email {0} not exist")]
     UserNotExist(String),
+
+    #[error("you are not allowed to perform this action")]
+    Forbidden,
 }
 
 impl IntoResponse for AppError {
@@ -154,6 +157,11 @@ impl IntoResponse for AppError {
                 StatusCode::BAD_REQUEST,
                 "user_not_exist".to_string(),
                 format!("User with given email {value} not exist"),
+            ),
+            AppError::Forbidden => (
+                StatusCode::FORBIDDEN,
+                "forbidden".to_string(),
+                "you are not allowed to perform this action".to_string(),
             ),
             _ => (
                 StatusCode::INTERNAL_SERVER_ERROR,

@@ -4,6 +4,8 @@ use casbin::{CoreApi, Enforcer, MgmtApi, RbacApi};
 use tokio::sync::RwLock;
 use tracing::info;
 
+use crate::domain::entities::role::Role;
+
 #[derive(Clone)]
 pub struct Rbac {
     pub enforcer: Arc<RwLock<Enforcer>>,
@@ -16,11 +18,22 @@ impl Rbac {
 
     pub async fn check_access(
         &self,
-        subject: &str,
+        roles: &Vec<Role>,
         object: &str,
         action: &str,
     ) -> Result<bool, casbin::Error> {
+        let roles = roles.clone();
+        if roles.is_empty() {
+            return Ok(false);
+        }
+
         let enforcer = self.enforcer.read().await;
+
+        // for now get the first one
+        let subject = match roles.get(0) {
+            Some(role) => role.id.clone(),
+            None => String::default(),
+        };
 
         let has_access = enforcer.enforce((subject, object, action))?;
 

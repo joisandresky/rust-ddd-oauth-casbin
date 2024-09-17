@@ -5,7 +5,7 @@ use tracing::info;
 
 use crate::{
     domain::repositories::role_repo::RoleRepository,
-    infra::{errors::app_error::AppError, rbac::Rbac},
+    infra::{common::constants::SUPER_ADMIN_ROLE, errors::app_error::AppError, rbac::Rbac},
 };
 
 #[derive(Clone)]
@@ -24,6 +24,12 @@ where
 
     pub async fn execute(&self, id: &str) -> Result<(), AppError> {
         let role = self.role_repo.find_by_id(id).await?;
+
+        if role.name == SUPER_ADMIN_ROLE {
+            return Err(AppError::ProcessError(
+                "Cannot delete super admin role".to_string(),
+            ));
+        }
 
         info!("Deleting Role with id {}...", id);
         self.role_repo.delete(id).await?;
