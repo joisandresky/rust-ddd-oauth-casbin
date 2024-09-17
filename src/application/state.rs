@@ -17,6 +17,7 @@ use super::{
     services::{oauth_svc::OauthService, redis_svc::RedisService},
     usecases::{
         auth::{
+            email_login::EmailLogin, email_register::EmailRegister,
             get_google_auth_url::GetGoogleAuthUrl, oauth2_login::Oauth2Login,
             oauth2_logout::Oauth2Logout,
         },
@@ -69,6 +70,15 @@ pub struct AuthUsecase {
     >,
     pub oauth2_logout: Arc<
         Oauth2Logout<
+            PgUserRepository,
+            PgRoleRepository,
+            PgUserSessionRepository,
+            PgOauthProviderRepository,
+        >,
+    >,
+    pub email_register: Arc<EmailRegister<PgUserRepository, PgRoleRepository>>,
+    pub email_login: Arc<
+        EmailLogin<
             PgUserRepository,
             PgRoleRepository,
             PgUserSessionRepository,
@@ -137,6 +147,15 @@ impl AppState {
             user_session_repo.clone(),
             oauth_svc.clone(),
         ));
+        let email_register = Arc::new(EmailRegister::new(user_repo.clone(), role_repo.clone()));
+        let email_login = Arc::new(EmailLogin::new(
+            user_repo.clone(),
+            role_repo.clone(),
+            user_session_repo.clone(),
+            oauth_provider_repo.clone(),
+            jwt_maker.clone(),
+            oauth_svc.clone(),
+        ));
 
         // service registration
         let svc = Arc::new(Service {
@@ -157,6 +176,8 @@ impl AppState {
                 get_google_auth_url,
                 oauth2_login,
                 oauth2_logout,
+                email_register,
+                email_login,
             }),
         });
 

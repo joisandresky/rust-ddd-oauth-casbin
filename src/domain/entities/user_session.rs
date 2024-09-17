@@ -1,7 +1,6 @@
 use serde::Serialize;
 use uuid::Uuid;
 
-// TODO: Add to access_token
 #[derive(Clone, Debug, Serialize)]
 pub struct UserSession {
     pub id: String,

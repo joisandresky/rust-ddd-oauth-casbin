@@ -1,4 +1,5 @@
 use serde::Serialize;
+use uuid::Uuid;
 
 use super::{role::Role, user_oauth_provider::UserOauthProvider};
 
@@ -17,18 +18,30 @@ pub struct User {
 }
 
 impl User {
-    pub fn new(id: String, email: String, password_hash: Option<String>) -> Self {
+    pub fn new(email: String, password_hash: Option<String>) -> Self {
+        let extracted_name_from_email = email
+            .split('@')
+            .collect::<Vec<&str>>()
+            .first()
+            .unwrap_or(&"")
+            .to_string();
+
         Self {
-            id,
+            id: Uuid::new_v4().to_string(),
             email,
             password_hash,
-            fullname: None,
+            fullname: Some(extracted_name_from_email),
             avatar_url: None,
             is_active: true,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
             deleted_at: None,
         }
+    }
+
+    pub fn change_email(&mut self, email: String) {
+        self.email = email;
+        self.updated_at = chrono::Utc::now();
     }
 
     pub fn update(&mut self, fullname: Option<String>, avatar_url: Option<String>) {

@@ -72,6 +72,12 @@ pub enum AppError {
 
     #[error("Invalid Auth Token")]
     InvalidToken,
+
+    #[error("User Email Already Exist")]
+    UserEmailAlreadyExist,
+
+    #[error("User with given email {0} not exist")]
+    UserNotExist(String),
 }
 
 impl IntoResponse for AppError {
@@ -138,6 +144,16 @@ impl IntoResponse for AppError {
                 StatusCode::UNAUTHORIZED,
                 "unauthorized".to_string(),
                 format!("Unauthorized: {}", value),
+            ),
+            AppError::UserEmailAlreadyExist => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "user_email_already_exist".to_string(),
+                "User with given email already exist".to_string(),
+            ),
+            AppError::UserNotExist(value) => (
+                StatusCode::BAD_REQUEST,
+                "user_not_exist".to_string(),
+                format!("User with given email {value} not exist"),
             ),
             _ => (
                 StatusCode::INTERNAL_SERVER_ERROR,

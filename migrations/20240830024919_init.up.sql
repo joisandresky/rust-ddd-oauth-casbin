@@ -16,7 +16,7 @@ CREATE TABLE users (
 CREATE TABLE user_oauth_providers (
     id VARCHAR(255) PRIMARY KEY NOT NULL,
     user_id VARCHAR(255) NOT NULL,
-    provider VARCHAR(50) NOT NULL CHECK (provider IN ('google', 'discord')),
+    provider VARCHAR(50) NOT NULL CHECK (provider IN ('google', 'discord', 'email')),
     provider_user_id VARCHAR(255) NOT NULL,
     UNIQUE(user_id, provider),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE

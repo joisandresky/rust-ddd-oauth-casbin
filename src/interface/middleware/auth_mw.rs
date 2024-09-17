@@ -9,7 +9,11 @@ use axum_extra::extract::CookieJar;
 
 use crate::{
     application::state::AppState,
-    infra::{errors::app_error::AppError, oauth2::constants::GOOGLE_PROVIDER},
+    domain::entities::user::UserFull,
+    infra::{
+        errors::app_error::AppError,
+        oauth2::constants::{EMAIL_PROVIDER, GOOGLE_PROVIDER},
+    },
 };
 
 pub async fn is_authorized(
@@ -30,19 +34,48 @@ pub async fn is_authorized(
         .unwrap_or_default();
 
     // TODO: Implement Automatic Refresh Token when access_token expired
+    // TODO: Implement Caching with Redis
 
-    let claims = match provider.as_str() {
-        GOOGLE_PROVIDER => app_state
-            .google_jwt_maker
-            .verify_token(&token.unwrap_or_default())
-            .await
-            .map_err(|err| {
-                tracing::info!(
-                    "[Middleware:Auth->is_authorized] User is not authorized with error: {}",
-                    err
-                );
-                AppError::UnauthorizedError(err.to_string())
-            })?,
+    let current_user = match provider.as_str() {
+        GOOGLE_PROVIDER => {
+            let claims = app_state
+                .google_jwt_maker
+                .verify_token(&token.unwrap_or_default())
+                .await
+                .map_err(|err| {
+                    tracing::info!(
+                        "[Middleware:Auth->is_authorized->GOOGLE_PROVIDER] User is not authorized with error: {}",
+                        err
+                    );
+                    AppError::UnauthorizedError(err.to_string())
+                })?;
+
+            app_state
+                .svc
+                .oauth
+                .get_current_oauth_user(&provider, &claims.sub)
+                .await
+                .map_err(|err| AppError::UnauthorizedError(err.to_string()))?
+        }
+        EMAIL_PROVIDER => {
+            let claims = app_state
+                .jwt_maker
+                .verify_access_token(&token.unwrap_or_default())
+                .map_err(|err| {
+                    tracing::info!(
+                        "[Middleware:Auth->is_authorized->EMAIL_PROVIDER] User is not authorized with error: {}",
+                        err
+                    );
+                    AppError::UnauthorizedError(err.to_string())
+                })?;
+
+            app_state
+                .svc
+                .oauth
+                .get_current_oauth_user(&provider, &claims.sub)
+                .await
+                .map_err(|err| AppError::UnauthorizedError(err.to_string()))?
+        }
         _ => {
             tracing::info!("[Middleware:Auth->is_authorized] User is not authorized because of Invalid Oauth Provider");
             return Err(AppError::UnauthorizedError(
@@ -50,13 +83,6 @@ pub async fn is_authorized(
             ));
         }
     };
-
-    let current_user = app_state
-        .svc
-        .oauth
-        .get_current_oauth_user(&provider, &claims.sub)
-        .await
-        .map_err(|err| AppError::UnauthorizedError(err.to_string()))?;
 
     req.extensions_mut().insert(current_user);
 
