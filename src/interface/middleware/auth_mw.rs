@@ -27,15 +27,23 @@ pub async fn is_authorized(
         .get("access_token")
         .map(|cookie| cookie.value().to_string());
 
+    if token.is_none() {
+        return Err(AppError::Unauthorized);
+    }
+
     let provider = cookie_jar
         .get("provider")
         .map(|cookie| cookie.value().to_string())
         .unwrap_or_default();
 
+    if provider.is_empty() {
+        return Err(AppError::InvalidOauthProvider);
+    }
+
     // TODO: Implement Automatic Refresh Token when access_token expired
     // TODO: Implement Caching with Redis
 
-    let current_user = match provider.as_str() {
+    let (from_cache, current_user) = match provider.as_str() {
         GOOGLE_PROVIDER => {
             let claims = app_state
                 .google_jwt_maker
@@ -49,12 +57,19 @@ pub async fn is_authorized(
                     AppError::UnauthorizedError(err.to_string())
                 })?;
 
-            app_state
-                .svc
-                .oauth
-                .get_current_oauth_user(&provider, &claims.sub)
-                .await
-                .map_err(|err| AppError::UnauthorizedError(err.to_string()))?
+            match app_state.svc.redis.get_current_user(&claims.sub).await {
+                Ok(existing_current_user) => (true, existing_current_user),
+                Err(_) => {
+                    let current_user = app_state
+                        .svc
+                        .oauth
+                        .get_current_oauth_user(&provider, &claims.sub)
+                        .await
+                        .map_err(|err| AppError::UnauthorizedError(err.to_string()))?;
+
+                    (false, current_user)
+                }
+            }
         }
         EMAIL_PROVIDER => {
             let claims = app_state
@@ -68,12 +83,19 @@ pub async fn is_authorized(
                     AppError::UnauthorizedError(err.to_string())
                 })?;
 
-            app_state
-                .svc
-                .oauth
-                .get_current_oauth_user(&provider, &claims.sub)
-                .await
-                .map_err(|err| AppError::UnauthorizedError(err.to_string()))?
+            match app_state.svc.redis.get_current_user(&claims.sub).await {
+                Ok(existing_current_user) => (true, existing_current_user),
+                Err(_) => {
+                    let current_user = app_state
+                        .svc
+                        .oauth
+                        .get_current_oauth_user(&provider, &claims.sub)
+                        .await
+                        .map_err(|err| AppError::UnauthorizedError(err.to_string()))?;
+
+                    (false, current_user)
+                }
+            }
         }
         _ => {
             tracing::info!("[Middleware:Auth->is_authorized] User is not authorized because of Invalid Oauth Provider");
@@ -82,6 +104,16 @@ pub async fn is_authorized(
             ));
         }
     };
+
+    if !from_cache {
+        tracing::info!("dapet cache, return bro");
+        app_state.svc.redis.set_current_user(&current_user).await?;
+    }
+
+    tracing::info!(
+        "[Middleware:Auth->is_authorized] User is authorized {}",
+        &current_user.user.id
+    );
 
     req.extensions_mut().insert(current_user);
 

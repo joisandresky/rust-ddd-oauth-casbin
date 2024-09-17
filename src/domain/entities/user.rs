@@ -1,9 +1,9 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::{role::Role, user_oauth_provider::UserOauthProvider};
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct User {
     pub id: String,
     pub email: String,
@@ -56,7 +56,7 @@ impl User {
     }
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UserFull {
     #[serde(flatten)]
     pub user: User,
