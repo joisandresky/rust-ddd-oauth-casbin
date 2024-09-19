@@ -40,6 +40,7 @@ where
         }
     }
 
+    // TODO: implement single sign on ? so when new user login, other session will be terminated
     pub async fn execute(&self, req: EmailLoginRequest) -> Result<(String, String), AppError> {
         req.validate()?;
 

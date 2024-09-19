@@ -59,6 +59,16 @@ where
             _ => return Err(AppError::InvalidOauthProvider),
         }
 
+        // remove user session
+        self.user_session_repo
+            .delete_by_id(&user_session.id)
+            .await
+            .map_err(|err| match err {
+                AppError::SqlxError(sqlx::Error::RowNotFound) => AppError::Unauthorized,
+                _ => err,
+            })?;
+
+        // remove current user in redis
         self.redis_svc.remove_current_user(user_id).await?;
 
         Ok(())

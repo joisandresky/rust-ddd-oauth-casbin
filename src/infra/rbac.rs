@@ -18,11 +18,11 @@ impl Rbac {
 
     pub async fn check_access(
         &self,
-        roles: &Vec<Role>,
+        roles: &[Role],
         object: &str,
         action: &str,
     ) -> Result<bool, casbin::Error> {
-        let roles = roles.clone();
+        let roles = roles.to_owned();
         if roles.is_empty() {
             return Ok(false);
         }
@@ -30,7 +30,7 @@ impl Rbac {
         let enforcer = self.enforcer.read().await;
 
         // for now get the first one
-        let subject = match roles.get(0) {
+        let subject = match roles.first() {
             Some(role) => role.id.clone(),
             None => String::default(),
         };

@@ -40,9 +40,6 @@ pub async fn is_authorized(
         return Err(AppError::InvalidOauthProvider);
     }
 
-    // TODO: Implement Automatic Refresh Token when access_token expired
-    // TODO: Implement Caching with Redis
-
     let (from_cache, current_user) = match provider.as_str() {
         GOOGLE_PROVIDER => {
             let claims = app_state

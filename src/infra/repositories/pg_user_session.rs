@@ -70,4 +70,12 @@ impl UserSessionRepository for PgUserSessionRepository {
 
         Ok(())
     }
+
+    async fn delete_by_id(&self, session_id: &str) -> Result<(), AppError> {
+        sqlx::query!("DELETE FROM user_sessions WHERE id = $1", session_id)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(())
+    }
 }
