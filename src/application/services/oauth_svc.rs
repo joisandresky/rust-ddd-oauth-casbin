@@ -97,7 +97,7 @@ where
                                 &u.id,
                                 &resp.access_token,
                                 &resp.refresh_token,
-                                Some(resp.expires_in as i64),
+                                Some(60 * 60 * 24 * 7),
                             )
                             .await?;
                         return Ok(resp);
@@ -110,7 +110,7 @@ where
                             &user_data.id,
                             &resp.access_token,
                             &resp.refresh_token,
-                            Some(resp.expires_in as i64),
+                            Some(60 * 60 * 24 * 7),
                         )
                         .await?;
 
@@ -315,5 +315,45 @@ where
             .map_err(|err| AppError::ProcessError(err.to_string()))?;
 
         Ok(())
+    }
+
+    pub async fn google_refresh_token(
+        &self,
+        refresh_token: &str,
+    ) -> Result<GoogleTokenResponse, AppError> {
+        let client = reqwest::Client::new();
+        let mut payload = HashMap::new();
+        payload.insert("client_id", self.cfg.google_client_id.as_str());
+        payload.insert("client_secret", self.cfg.google_client_secret.as_str());
+        payload.insert("refresh_token", refresh_token);
+        payload.insert("grant_type", "refresh_token");
+
+        let r = client
+            .post("https://oauth2.googleapis.com/token")
+            .json(&payload)
+            .send()
+            .await;
+
+        match r {
+            Ok(r) => {
+                if r.status().is_success() {
+                    let resp = r.json::<GoogleTokenResponse>().await?;
+                    Ok(resp)
+                } else {
+                    let err_resp = r.json::<GoogleTokenError>().await?;
+
+                    tracing::error!("{:?}", err_resp);
+                    if err_resp.error == "invalid_grant" {
+                        return Err(AppError::Unauthorized);
+                    }
+
+                    Err(AppError::ProcessError(err_resp.error))
+                }
+            }
+            Err(err) => {
+                tracing::error!("{:?}", err);
+                Err(AppError::ProcessError(err.to_string()))
+            }
+        }
     }
 }

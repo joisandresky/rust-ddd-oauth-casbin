@@ -19,7 +19,8 @@ use super::{
         auth::{
             email_login::EmailLogin, email_register::EmailRegister,
             get_google_auth_url::GetGoogleAuthUrl, oauth2_login::Oauth2Login,
-            oauth2_logout::Oauth2Logout, seed_super_admin::SeedSuperAdmin,
+            oauth2_logout::Oauth2Logout, refresh_oauth_token::RefreshOauthToken,
+            seed_super_admin::SeedSuperAdmin,
         },
         role::{
             create_role::CreateRole, delete_role_by_id::DeleteRoleById, get_all_role::GetAllRole,
@@ -86,6 +87,14 @@ pub struct AuthUsecase {
         >,
     >,
     pub seed_super_admin: Arc<SeedSuperAdmin<PgUserRepository, PgRoleRepository>>,
+    pub refresh_oauth_token: Arc<
+        RefreshOauthToken<
+            PgUserRepository,
+            PgRoleRepository,
+            PgUserSessionRepository,
+            PgOauthProviderRepository,
+        >,
+    >,
 }
 /* End Auth Usecases */
 
@@ -158,8 +167,12 @@ impl AppState {
         let seed_super_admin = Arc::new(SeedSuperAdmin::new(
             user_repo.clone(),
             role_repo.clone(),
-            redis_svc.clone(),
             rbac.clone(),
+        ));
+        let refresh_oauth_token = Arc::new(RefreshOauthToken::new(
+            jwt_maker.clone(),
+            user_session_repo.clone(),
+            oauth_svc.clone(),
         ));
 
         // service registration
@@ -184,6 +197,7 @@ impl AppState {
                 email_register,
                 email_login,
                 seed_super_admin,
+                refresh_oauth_token,
             }),
         });
 

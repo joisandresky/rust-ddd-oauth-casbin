@@ -7,7 +7,10 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use axum_extra::extract::cookie::{self, Cookie};
+use axum_extra::extract::{
+    cookie::{self, Cookie},
+    CookieJar,
+};
 
 use crate::{
     application::{
@@ -31,6 +34,7 @@ pub fn setup_public_oauth_handler() -> Router<Arc<AppState>> {
         .route("/:provider/intercept", get(intercept_oauth_code))
         .route("/email/register", post(register_with_email))
         .route("/email/login", post(login_with_email))
+        .route("/refresh-token", get(refresh_token))
 }
 
 pub async fn get_oauth_url(
@@ -165,6 +169,61 @@ pub async fn login_with_email(
         .append(header::SET_COOKIE, refresh_cookie.to_string().parse()?);
     resp.headers_mut()
         .append(header::SET_COOKIE, provider_cookie.to_string().parse()?);
+
+    Ok(resp)
+}
+
+/*
+*
+* Refresh Token for all providers
+*
+* */
+pub async fn refresh_token(
+    jar: CookieJar,
+    State(app_state): State<Arc<AppState>>,
+) -> Result<impl IntoResponse, AppError> {
+    let refresh_token = match jar.get("refresh_token") {
+        Some(cookie) => cookie.value().to_string(),
+        None => return Err(AppError::Unauthorized),
+    };
+
+    let provider = match jar.get("provider") {
+        Some(cookie) => cookie.value().to_string(),
+        None => {
+            return Err(AppError::UnauthorizedError(
+                "invalid oauth provider".to_string(),
+            ))
+        }
+    };
+
+    let (access_token, refresh_token) = app_state
+        .uc
+        .auth
+        .refresh_oauth_token
+        .execute(&provider, &refresh_token)
+        .await?;
+
+    let mut access_cookie = Cookie::build(("access_token", access_token.clone()))
+        .path("/")
+        .http_only(true)
+        .same_site(cookie::SameSite::Lax);
+
+    let mut refresh_cookie = Cookie::build(("refresh_token", refresh_token.clone()))
+        .path("/")
+        .http_only(true)
+        .same_site(cookie::SameSite::Lax);
+
+    if &app_state.cfg.app_env != "local" {
+        access_cookie = access_cookie.secure(true);
+        refresh_cookie = refresh_cookie.secure(true);
+    }
+
+    let mut resp = SuccessResponse::<u16>::with_code(200).into_response();
+
+    resp.headers_mut()
+        .append(header::SET_COOKIE, access_cookie.to_string().parse()?);
+    resp.headers_mut()
+        .append(header::SET_COOKIE, refresh_cookie.to_string().parse()?);
 
     Ok(resp)
 }

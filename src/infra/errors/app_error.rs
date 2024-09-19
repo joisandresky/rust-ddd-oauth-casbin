@@ -37,6 +37,12 @@ pub enum AppError {
     #[error("Unauthorized Error: {0}")]
     UnauthorizedError(String),
 
+    #[error("Session Expired")]
+    SessionExpired,
+
+    #[error("Refresh Token Expired")]
+    RefreshTokenExpired,
+
     #[error("Json Error: {0}")]
     SerdeJsonError(#[from] serde_json::Error),
 
@@ -147,6 +153,17 @@ impl IntoResponse for AppError {
                 StatusCode::UNAUTHORIZED,
                 "unauthorized".to_string(),
                 format!("Unauthorized: {}", value),
+            ),
+            AppError::SessionExpired => (
+                StatusCode::UNAUTHORIZED,
+                "access_token_expired".to_string(),
+                "Unauthorized: Your Session are expired".to_string(),
+            ),
+            AppError::RefreshTokenExpired => (
+                StatusCode::UNAUTHORIZED,
+                "refresh_token_expired".to_string(),
+                "Unauthorized: Your Session are permanently Expired, please try to relogin"
+                    .to_string(),
             ),
             AppError::UserEmailAlreadyExist => (
                 StatusCode::UNPROCESSABLE_ENTITY,

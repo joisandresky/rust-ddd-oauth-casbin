@@ -11,7 +11,7 @@ use crate::{application::state::AppState, infra::errors::app_error::AppError};
 
 pub async fn is_super_user(
     State(app_state): State<Arc<AppState>>,
-    req: Request,
+    mut req: Request,
     next: Next,
 ) -> Result<impl IntoResponse, AppError> {
     tracing::info!("[Middleware:Super->is_super_user] Checking if user is super user");
@@ -42,5 +42,11 @@ pub async fn is_super_user(
         return Err(AppError::Unauthorized);
     }
 
-    Ok(next.run(req).await)
+    req.extensions_mut()
+        .insert("this_stupid_bitch_authorized_as_super_user".to_string());
+
+    let response = next.run(req).await;
+    tracing::info!("[Middleware:Super->is_super_user] User is authorized as super user");
+
+    Ok(response.into_response())
 }

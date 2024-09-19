@@ -30,6 +30,18 @@ impl UserSessionRepository for PgUserSessionRepository {
         Ok(sessions)
     }
 
+    async fn find_by_refresh_token(&self, refresh_token: &str) -> Result<UserSession, AppError> {
+        let sessions = sqlx::query_as!(
+            UserSession,
+            "SELECT * FROM user_sessions WHERE refresh_token = $1",
+            refresh_token
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(sessions)
+    }
+
     async fn create(&self, entity: UserSession) -> Result<UserSession, AppError> {
         let session = sqlx::query_as!(
             UserSession,

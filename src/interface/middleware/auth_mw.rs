@@ -54,7 +54,7 @@ pub async fn is_authorized(
                         "[Middleware:Auth->is_authorized->GOOGLE_PROVIDER] User is not authorized with error: {}",
                         err
                     );
-                    AppError::UnauthorizedError(err.to_string())
+                    AppError::SessionExpired
                 })?;
 
             match app_state.svc.redis.get_current_user(&claims.sub).await {
@@ -80,7 +80,7 @@ pub async fn is_authorized(
                         "[Middleware:Auth->is_authorized->EMAIL_PROVIDER] User is not authorized with error: {}",
                         err
                     );
-                    AppError::UnauthorizedError(err.to_string())
+                    AppError::SessionExpired
                 })?;
 
             match app_state.svc.redis.get_current_user(&claims.sub).await {

@@ -1,13 +1,10 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use casbin::MgmtApi;
-use tokio::fs;
 use uuid::Uuid;
 
 use crate::{
-    application::{
-        dto::auth::email_request::EmailRegisterRequest, services::redis_svc::RedisService,
-    },
+    application::dto::auth::email_request::EmailRegisterRequest,
     domain::{
         entities::{
             role::Role, user::User, user_oauth_provider::UserOauthProvider, user_role::UserRole,
@@ -16,8 +13,7 @@ use crate::{
     },
     infra::{
         common::constants::SUPER_ADMIN_ROLE, errors::app_error::AppError,
-        oauth2::constants::EMAIL_PROVIDER, rbac::Rbac,
-        repositories::redis_repo_impl::RedisRepositoryImpl, utils::password::hash_password,
+        oauth2::constants::EMAIL_PROVIDER, rbac::Rbac, utils::password::hash_password,
     },
 };
 
@@ -25,7 +21,6 @@ use crate::{
 pub struct SeedSuperAdmin<U, R> {
     user_repo: Arc<U>,
     role_repo: Arc<R>,
-    redis_svc: Arc<RedisService<RedisRepositoryImpl>>,
     rbac: Arc<Rbac>,
 }
 
@@ -34,16 +29,10 @@ where
     U: UserRepository,
     R: RoleRepository,
 {
-    pub fn new(
-        user_repo: Arc<U>,
-        role_repo: Arc<R>,
-        redis_svc: Arc<RedisService<RedisRepositoryImpl>>,
-        rbac: Arc<Rbac>,
-    ) -> Self {
+    pub fn new(user_repo: Arc<U>, role_repo: Arc<R>, rbac: Arc<Rbac>) -> Self {
         Self {
             user_repo,
             role_repo,
-            redis_svc,
             rbac,
         }
     }
