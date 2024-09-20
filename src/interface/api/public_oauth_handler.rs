@@ -85,8 +85,6 @@ pub async fn handle_oauth2_callback(
 
     let mut resp = SuccessResponse::<u16>::with_code(200).into_response();
 
-    tracing::info!("access_token {}", access_token);
-
     resp.headers_mut()
         .append(header::SET_COOKIE, access_cookie.to_string().parse()?);
     resp.headers_mut()
@@ -160,8 +158,6 @@ pub async fn login_with_email(
     }
 
     let mut resp = SuccessResponse::<u16>::with_code(200).into_response();
-
-    tracing::info!("access_token {}", access_token);
 
     resp.headers_mut()
         .append(header::SET_COOKIE, access_cookie.to_string().parse()?);
