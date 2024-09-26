@@ -2,6 +2,7 @@ use crate::{domain::entities::role::Role, infra::errors::app_error::AppError};
 
 #[async_trait::async_trait]
 pub trait RoleRepository {
+    async fn paginate(&self, page: i64, limit: i64) -> Result<(Vec<Role>, i64), AppError>;
     async fn find_all(&self) -> Result<Vec<Role>, AppError>;
     async fn find_by_id(&self, id: &str) -> Result<Role, AppError>;
     async fn find_default(&self) -> Result<Role, AppError>;

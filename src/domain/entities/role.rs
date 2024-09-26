@@ -28,3 +28,8 @@ impl Role {
         self.updated_at = chrono::Utc::now();
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RoleCount {
+    pub total_items: Option<i64>,
+}

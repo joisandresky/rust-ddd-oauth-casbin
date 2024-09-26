@@ -1,5 +1,8 @@
 use crate::{
-    domain::{entities::role::Role, repositories::role_repo::RoleRepository},
+    domain::{
+        entities::role::{Role, RoleCount},
+        repositories::role_repo::RoleRepository,
+    },
     infra::errors::app_error::AppError,
 };
 
@@ -16,6 +19,28 @@ impl PgRoleRepository {
 
 #[async_trait::async_trait]
 impl RoleRepository for PgRoleRepository {
+    async fn paginate(&self, page: i64, limit: i64) -> Result<(Vec<Role>, i64), AppError> {
+        let offset = (page - 1) * limit;
+
+        let roles = sqlx::query_as!(
+            Role,
+            "SELECT * FROM roles WHERE deleted_at IS NULL LIMIT $1 OFFSET $2",
+            limit,
+            offset
+        )
+        .fetch_all(&self.db_pool)
+        .await?;
+
+        let count = sqlx::query_as!(
+            RoleCount,
+            "SELECT COUNT(*) AS total_items FROM roles WHERE deleted_at IS NULL"
+        )
+        .fetch_one(&self.db_pool)
+        .await?;
+
+        Ok((roles, count.total_items.unwrap_or(0)))
+    }
+
     async fn find_all(&self) -> Result<Vec<Role>, AppError> {
         let roles = sqlx::query_as!(Role, "SELECT * FROM roles WHERE deleted_at IS NULL")
             .fetch_all(&self.db_pool)

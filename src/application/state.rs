@@ -24,7 +24,8 @@ use super::{
         },
         role::{
             create_role::CreateRole, delete_role_by_id::DeleteRoleById, get_all_role::GetAllRole,
-            get_role_by_id::GetRoleById, update_role_by_id::UpdateRoleById,
+            get_paginated_role::GetPaginatedRole, get_role_by_id::GetRoleById,
+            update_role_by_id::UpdateRoleById,
         },
     },
 };
@@ -49,6 +50,7 @@ pub struct Usecase {
 
 #[derive(Clone)]
 pub struct RoleUsecase {
+    pub get_paginated_role: Arc<GetPaginatedRole<PgRoleRepository>>,
     pub get_all_role: Arc<GetAllRole<PgRoleRepository>>,
     pub get_role_by_id: Arc<GetRoleById<PgRoleRepository>>,
     pub create_role: Arc<CreateRole<PgRoleRepository>>,
@@ -141,6 +143,7 @@ impl AppState {
 
         // usecases list
         // Role UC
+        let get_paginated_role = Arc::new(GetPaginatedRole::new(role_repo.clone()));
         let get_all_role = Arc::new(GetAllRole::new(role_repo.clone()));
         let get_role_by_id = Arc::new(GetRoleById::new(role_repo.clone(), rbac.clone()));
         let create_role = Arc::new(CreateRole::new(role_repo.clone(), rbac.clone()));
@@ -184,6 +187,7 @@ impl AppState {
         // usecase registration
         let uc = Arc::new(Usecase {
             role: Arc::new(RoleUsecase {
+                get_paginated_role,
                 get_all_role,
                 get_role_by_id,
                 create_role,
