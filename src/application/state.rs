@@ -15,19 +15,7 @@ use sqlx::PgPool;
 
 use super::{
     services::{oauth_svc::OauthService, redis_svc::RedisService},
-    usecases::{
-        auth::{
-            email_login::EmailLogin, email_register::EmailRegister,
-            get_google_auth_url::GetGoogleAuthUrl, oauth2_login::Oauth2Login,
-            oauth2_logout::Oauth2Logout, refresh_oauth_token::RefreshOauthToken,
-            seed_super_admin::SeedSuperAdmin,
-        },
-        role::{
-            create_role::CreateRole, delete_role_by_id::DeleteRoleById, get_all_role::GetAllRole,
-            get_paginated_role::GetPaginatedRole, get_role_by_id::GetRoleById,
-            update_role_by_id::UpdateRoleById,
-        },
-    },
+    usecases::{auth::init::AuthUsecase, role::init::RoleUsecase},
 };
 
 #[derive(Clone)]
@@ -48,57 +36,7 @@ pub struct Usecase {
     pub auth: Arc<AuthUsecase>,
 }
 
-#[derive(Clone)]
-pub struct RoleUsecase {
-    pub get_paginated_role: Arc<GetPaginatedRole<PgRoleRepository>>,
-    pub get_all_role: Arc<GetAllRole<PgRoleRepository>>,
-    pub get_role_by_id: Arc<GetRoleById<PgRoleRepository>>,
-    pub create_role: Arc<CreateRole<PgRoleRepository>>,
-    pub update_role_by_id: Arc<UpdateRoleById<PgRoleRepository>>,
-    pub delete_role_by_id: Arc<DeleteRoleById<PgRoleRepository>>,
-}
 /* End Usecases list */
-
-/* Auth Usecases*/
-#[derive(Clone)]
-pub struct AuthUsecase {
-    pub get_google_auth_url: Arc<GetGoogleAuthUrl>,
-    pub oauth2_login: Arc<
-        Oauth2Login<
-            PgUserRepository,
-            PgRoleRepository,
-            PgUserSessionRepository,
-            PgOauthProviderRepository,
-        >,
-    >,
-    pub oauth2_logout: Arc<
-        Oauth2Logout<
-            PgUserRepository,
-            PgRoleRepository,
-            PgUserSessionRepository,
-            PgOauthProviderRepository,
-        >,
-    >,
-    pub email_register: Arc<EmailRegister<PgUserRepository, PgRoleRepository>>,
-    pub email_login: Arc<
-        EmailLogin<
-            PgUserRepository,
-            PgRoleRepository,
-            PgUserSessionRepository,
-            PgOauthProviderRepository,
-        >,
-    >,
-    pub seed_super_admin: Arc<SeedSuperAdmin<PgUserRepository, PgRoleRepository>>,
-    pub refresh_oauth_token: Arc<
-        RefreshOauthToken<
-            PgUserRepository,
-            PgRoleRepository,
-            PgUserSessionRepository,
-            PgOauthProviderRepository,
-        >,
-    >,
-}
-/* End Auth Usecases */
 
 #[derive(Clone)]
 pub struct Service {
@@ -141,43 +79,6 @@ impl AppState {
             oauth_provider_repo.clone(),
         ));
 
-        // usecases list
-        // Role UC
-        let get_paginated_role = Arc::new(GetPaginatedRole::new(role_repo.clone()));
-        let get_all_role = Arc::new(GetAllRole::new(role_repo.clone()));
-        let get_role_by_id = Arc::new(GetRoleById::new(role_repo.clone(), rbac.clone()));
-        let create_role = Arc::new(CreateRole::new(role_repo.clone(), rbac.clone()));
-        let update_role = Arc::new(UpdateRoleById::new(role_repo.clone(), rbac.clone()));
-        let delete_role_by_id = Arc::new(DeleteRoleById::new(role_repo.clone(), rbac.clone()));
-
-        // Auth UC
-        let get_google_auth_url = Arc::new(GetGoogleAuthUrl::new(
-            cfg.google_client_id.clone(),
-            cfg.google_redirect_url.clone(),
-        ));
-        let oauth2_login = Arc::new(Oauth2Login::new(oauth_svc.clone()));
-        let oauth2_logout = Arc::new(Oauth2Logout::new(
-            user_session_repo.clone(),
-            oauth_svc.clone(),
-            redis_svc.clone(),
-        ));
-        let email_register = Arc::new(EmailRegister::new(user_repo.clone(), role_repo.clone()));
-        let email_login = Arc::new(EmailLogin::new(
-            user_repo.clone(),
-            jwt_maker.clone(),
-            oauth_svc.clone(),
-        ));
-        let seed_super_admin = Arc::new(SeedSuperAdmin::new(
-            user_repo.clone(),
-            role_repo.clone(),
-            rbac.clone(),
-        ));
-        let refresh_oauth_token = Arc::new(RefreshOauthToken::new(
-            jwt_maker.clone(),
-            user_session_repo.clone(),
-            oauth_svc.clone(),
-        ));
-
         // service registration
         let svc = Arc::new(Service {
             oauth: oauth_svc,
@@ -186,23 +87,17 @@ impl AppState {
 
         // usecase registration
         let uc = Arc::new(Usecase {
-            role: Arc::new(RoleUsecase {
-                get_paginated_role,
-                get_all_role,
-                get_role_by_id,
-                create_role,
-                update_role_by_id: update_role,
-                delete_role_by_id,
-            }),
-            auth: Arc::new(AuthUsecase {
-                get_google_auth_url,
-                oauth2_login,
-                oauth2_logout,
-                email_register,
-                email_login,
-                seed_super_admin,
-                refresh_oauth_token,
-            }),
+            role: Arc::new(RoleUsecase::new(role_repo.clone(), rbac.clone())),
+            auth: Arc::new(AuthUsecase::new(
+                cfg.clone(),
+                svc.oauth.clone(),
+                rbac.clone(),
+                user_repo.clone(),
+                role_repo.clone(),
+                user_session_repo.clone(),
+                jwt_maker.clone(),
+                svc.redis.clone(),
+            )),
         });
 
         Self {
